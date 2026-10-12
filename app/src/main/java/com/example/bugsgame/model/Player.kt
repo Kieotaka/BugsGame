@@ -1,4 +1,4 @@
-package com.example.bugsgame
+package com.example.bugsgame.model
 
 data class Player(
     val fullName: String,
