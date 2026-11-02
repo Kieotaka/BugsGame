@@ -7,7 +7,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import kotlin.random.Random                       // ← ДОБАВИТЬ
+import kotlin.random.Random
 
 class GameView @JvmOverloads constructor(
     context: Context,
@@ -17,7 +17,6 @@ class GameView @JvmOverloads constructor(
     private val bugs = mutableListOf<Bug>()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    // Колбэки наружу
     var onBugKilled: ((Bug) -> Unit)? = null
     var onMiss: (() -> Unit)? = null
 
@@ -28,8 +27,8 @@ class GameView @JvmOverloads constructor(
         val size = 0.12f * type.sizeFactor
         val bug = Bug(
             id = nextId++,
-            x = 0.1f + Random.nextFloat() * 0.8f,        // ← ИСПРАВЛЕНО
-            y = 0.1f + Random.nextFloat() * 0.8f,        // ← ИСПРАВЛЕНО
+            x = 0.1f + Random.nextFloat() * 0.8f,
+            y = 0.1f + Random.nextFloat() * 0.8f,
             vx = (if (Random.nextFloat() < 0.5f) -1 else 1) * 0.3f * type.speedFactor,
             vy = (if (Random.nextFloat() < 0.5f) -1 else 1) * 0.3f * type.speedFactor,
             size = size,
@@ -38,7 +37,7 @@ class GameView @JvmOverloads constructor(
             drawableRes = type.drawableRes
         )
         bugs.add(bug)
-        invalidate()                                     // ← добавить, чтобы жук сразу появился
+        invalidate()
     }
 
     fun clear() {
@@ -48,15 +47,19 @@ class GameView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
+        // ★ НОВОЕ: dt — время с прошлого кадра
         val now = System.currentTimeMillis()
         if (lastFrameTime == 0L) lastFrameTime = now
         val dt = (now - lastFrameTime) / 1000f
         lastFrameTime = now
 
         bugs.forEach { bug ->
+            // ★ НОВОЕ: движение
             bug.x += bug.vx * dt
             bug.y += bug.vy * dt
 
+            // ★ НОВОЕ: отскок от краёв
             if (bug.x < 0f || bug.x > 1f) { bug.vx = -bug.vx; bug.x = bug.x.coerceIn(0f, 1f) }
             if (bug.y < 0f || bug.y > 1f) { bug.vy = -bug.vy; bug.y = bug.y.coerceIn(0f, 1f) }
 
@@ -68,6 +71,7 @@ class GameView @JvmOverloads constructor(
             bitmap?.let { canvas.drawBitmap(it, null, rect, paint) }
         }
 
+        // ★ НОВОЕ: перерисовать следующий кадр
         invalidate()
     }
 
