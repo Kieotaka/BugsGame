@@ -11,15 +11,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // ★ Находим View по id из XML
         val viewPager = findViewById<ViewPager2>(R.id.viewPager)
         val tabLayout = findViewById<TabLayout>(R.id.tabLayout)
 
-        // ★ Создаём адаптер
         val adapter = TabsPagerAdapter(this)
         viewPager.adapter = adapter
 
-        // ★ Связываем табы и страницы
+        // ИСПРАВЛЕНИЕ: Запрещаем кэшировать вкладки, чтобы "Игра" не грузилась в фоне
+        viewPager.offscreenPageLimit = 1
+
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "Регистрация"
