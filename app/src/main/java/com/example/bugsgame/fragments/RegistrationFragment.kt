@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -22,6 +23,9 @@ class RegistrationFragment : Fragment() {
 
     private var selectedDate: Calendar = Calendar.getInstance()
 
+    // Список для Spinner
+    private var savedPlayers: MutableSet<String> = mutableSetOf()
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -32,6 +36,11 @@ class RegistrationFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Загружаем сохраненных игроков
+        loadSavedPlayers()
+        setupPlayersSpinner()
+
+        // Настройка Spinner для курса
         val courses = arrayOf("1 курс", "2 курс", "3 курс", "4 курс")
         binding.spCourse.adapter = ArrayAdapter(
             requireContext(),
@@ -52,13 +61,17 @@ class RegistrationFragment : Fragment() {
 
             val player = collectPlayer(fullName)
 
-            // --- СОХРАНЯЕМ ИМЯ И СЛОЖНОСТЬ ДЛЯ БАЗЫ ДАННЫХ ---
+            // Сохраняем имя и сложность для БД
             val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
             prefs.edit()
                 .putString("player_name", player.fullName)
                 .putInt("difficulty", player.difficulty)
                 .apply()
-            // -------------------------------------------------
+
+            // ДОБАВЛЯЕМ НОВОГО ИГРОКА В СПИСОК СОХРАНЕННЫХ
+            savedPlayers.add(player.fullName)
+            prefs.edit().putStringSet("saved_players", savedPlayers).apply()
+            setupPlayersSpinner() // Обновляем Spinner
 
             binding.tvResult.text = """
                 ФИО: ${player.fullName}
@@ -68,6 +81,35 @@ class RegistrationFragment : Fragment() {
                 Дата рождения: ${player.birthDate}
                 Знак зодиака: ${player.zodiac}
             """.trimIndent()
+        }
+    }
+
+    private fun loadSavedPlayers() {
+        val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
+        savedPlayers = prefs.getStringSet("saved_players", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+    }
+
+    private fun setupPlayersSpinner() {
+        val playersList = mutableListOf("-- Новый игрок --")
+        playersList.addAll(savedPlayers.sorted())
+
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_dropdown_item,
+            playersList
+        )
+        binding.spSavedPlayers.adapter = adapter
+
+        // Обработка выбора из списка
+        binding.spSavedPlayers.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (position > 0) {
+                    // Если выбран существующий игрок, подставляем его имя в поле ФИО
+                    val selectedName = playersList[position]
+                    binding.etFullName.setText(selectedName)
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 

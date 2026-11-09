@@ -1,103 +1,131 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:padding="16dp"
+    <!-- Всё, что прокручивается (поля, календарь, результат) -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <EditText
-            android:id="@+id/etFullName"
-            android:hint="ФИО"
-            android:inputType="textPersonName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <TextView
-            android:text="Пол"
-            android:layout_marginTop="12dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-        <RadioGroup
-            android:id="@+id/rgGender"
-            android:orientation="horizontal"
+        <LinearLayout
+            android:orientation="vertical"
+            android:padding="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <RadioButton
-                android:id="@+id/rbMale"
-                android:text="Мужской"
+            <!-- ВЫБОР ИГРОКА -->
+            <TextView
                 android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Выбрать игрока:"
+                android:textSize="16sp"
+                android:paddingTop="8dp"/>
+
+            <Spinner
+                android:id="@+id/spSavedPlayers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- ФИО -->
+            <EditText
+                android:id="@+id/etFullName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ФИО"
+                android:inputType="textPersonName"/>
+
+            <!-- ПОЛ -->
+            <RadioGroup
+                android:id="@+id/rgGender"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp">
+
+                <RadioButton
+                    android:id="@+id/rbMale"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Мужской"/>
+
+                <RadioButton
+                    android:id="@+id/rbFemale"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Женский"
+                    android:layout_marginStart="16dp"/>
+            </RadioGroup>
+
+            <!-- КУРС -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Курс:"
+                android:layout_marginTop="8dp"/>
+
+            <Spinner
+                android:id="@+id/spCourse"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
 
-            <RadioButton
-                android:id="@+id/rbFemale"
-                android:text="Женский"
-                android:layout_marginStart="16dp"
+            <!-- СЛОЖНОСТЬ -->
+            <TextView
                 android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Уровень сложности:"
+                android:layout_marginTop="8dp"/>
+
+            <SeekBar
+                android:id="@+id/sbDifficulty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="10"/>
+
+            <!-- ДАТА РОЖДЕНИЯ (КАЛЕНДАРЬ) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Дата рождения:"
+                android:layout_marginTop="8dp"/>
+
+            <CalendarView
+                android:id="@+id/calendarView"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
-        </RadioGroup>
 
-        <TextView
-            android:text="Курс"
-            android:layout_marginTop="12dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            <!-- ЗНАК ЗОДИАКА -->
+            <ImageView
+                android:id="@+id/ivZodiac"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"/>
 
-        <Spinner
-            android:id="@+id/spCourse"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            <!-- РЕЗУЛЬТАТ (TextView) -->
+            <TextView
+                android:id="@+id/tvResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:layout_marginTop="16dp"/>
 
-        <TextView
-            android:text="Уровень сложности"
-            android:layout_marginTop="12dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            <!-- Добавляем отступ снизу, чтобы результат не прилипал к кнопке -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp"/>
+        </LinearLayout>
+    </ScrollView>
 
-        <SeekBar
-            android:id="@+id/sbDifficulty"
-            android:max="10"
-            android:progress="5"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <TextView
-            android:text="Дата рождения"
-            android:layout_marginTop="12dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-        <CalendarView
-            android:id="@+id/calendarView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <ImageView
-            android:id="@+id/ivZodiac"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:contentDescription="Знак зодиака"/>
-
-        <Button
-            android:id="@+id/btnSubmit"
-            android:text="Зарегистрировать"
-            android:layout_marginTop="16dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <TextView
-            android:id="@+id/tvResult"
-            android:layout_marginTop="16dp"
-            android:textSize="16sp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-    </LinearLayout>
-</ScrollView>
+    <!-- КНОПКА, ЗАКРЕПЛЕННАЯ ВНИЗУ -->
+    <Button
+        android:id="@+id/btnSubmit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Зарегистрировать"
+        android:layout_margin="16dp"/>
+</LinearLayout>

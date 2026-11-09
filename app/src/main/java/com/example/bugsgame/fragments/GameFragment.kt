@@ -120,15 +120,29 @@ class GameFragment : Fragment() {
 
         val accuracy = if (hits + misses == 0) 0 else (hits * 100) / (hits + misses)
 
-        // СОХРАНЕНИЕ В БАЗУ
+        // СОХРАНЕНИЕ / ОБНОВЛЕНИЕ В БАЗЕ
         val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
         val playerName = prefs.getString("player_name", "Игрок") ?: "Игрок"
         val difficulty = prefs.getInt("difficulty", 5)
 
         CoroutineScope(Dispatchers.IO).launch {
-            database.scoreDao().insert(
-                Score(playerName = playerName, points = score, difficulty = difficulty)
-            )
+            val existingScore = database.scoreDao().getScoreByName(playerName)
+            if (existingScore == null) {
+                // Игрока нет — создаем новую запись
+                database.scoreDao().insert(
+                    Score(playerName = playerName, points = score, difficulty = difficulty)
+                )
+            } else {
+                // Игрок есть — обновляем только если новый результат ЛУЧШЕ
+                if (score > existingScore.points) {
+                    database.scoreDao().updateScore(
+                        name = playerName,
+                        newPoints = score,
+                        newDifficulty = difficulty,
+                        newTimestamp = System.currentTimeMillis()
+                    )
+                }
+            }
         }
 
         AlertDialog.Builder(requireContext())
