@@ -10,5 +10,6 @@ data class Score(
     val playerName: String,
     val points: Int,
     val difficulty: Int,
+    val accuracy: Int,
     val timestamp: Long = System.currentTimeMillis()
 )

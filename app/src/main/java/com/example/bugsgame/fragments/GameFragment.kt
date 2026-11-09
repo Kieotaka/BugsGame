@@ -130,7 +130,12 @@ class GameFragment : Fragment() {
             if (existingScore == null) {
                 // Игрока нет — создаем новую запись
                 database.scoreDao().insert(
-                    Score(playerName = playerName, points = score, difficulty = difficulty)
+                    Score(
+                        playerName = playerName,
+                        points = score,
+                        difficulty = difficulty,
+                        accuracy = accuracy // <-- ПЕРЕДАЕМ ТОЧНОСТЬ
+                    )
                 )
             } else {
                 // Игрок есть — обновляем только если новый результат ЛУЧШЕ
@@ -139,6 +144,7 @@ class GameFragment : Fragment() {
                         name = playerName,
                         newPoints = score,
                         newDifficulty = difficulty,
+                        newAccuracy = accuracy, // <-- ПЕРЕДАЕМ ТОЧНОСТЬ
                         newTimestamp = System.currentTimeMillis()
                     )
                 }
