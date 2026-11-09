@@ -16,8 +16,6 @@ class MainActivity : AppCompatActivity() {
 
         val adapter = TabsPagerAdapter(this)
         viewPager.adapter = adapter
-
-        // ИСПРАВЛЕНИЕ: Запрещаем кэшировать вкладки, чтобы "Игра" не грузилась в фоне
         viewPager.offscreenPageLimit = 1
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
@@ -27,6 +25,7 @@ class MainActivity : AppCompatActivity() {
                 2 -> "Авторы"
                 3 -> "Настройки"
                 4 -> "Игра"
+                5 -> "Рекорды"
                 else -> ""
             }
         }.attach()

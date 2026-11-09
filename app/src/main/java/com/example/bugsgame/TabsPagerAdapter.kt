@@ -8,7 +8,7 @@ import com.example.bugsgame.fragments.*
 class TabsPagerAdapter(activity: FragmentActivity) :
     FragmentStateAdapter(activity) {
 
-    override fun getItemCount(): Int = 5
+    override fun getItemCount(): Int = 6
 
     override fun createFragment(position: Int): Fragment = when (position) {
         0 -> RegistrationFragment()
@@ -16,6 +16,7 @@ class TabsPagerAdapter(activity: FragmentActivity) :
         2 -> AuthorsFragment()
         3 -> SettingsFragment()
         4 -> GameFragment()
+        5 -> RecordsFragment()
         else -> RegistrationFragment()
     }
 }
