@@ -1,5 +1,6 @@
 package com.example.bugsgame.fragments
 
+import android.content.Context
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.LayoutInflater
@@ -11,11 +12,17 @@ import androidx.fragment.app.Fragment
 import com.example.bugsgame.BugType
 import com.example.bugsgame.GameView
 import com.example.bugsgame.R
+import com.example.bugsgame.data.AppDatabase
+import com.example.bugsgame.data.Score
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class GameFragment : Fragment() {
 
     private lateinit var gameView: GameView
     private lateinit var tvHud: TextView
+    private lateinit var database: AppDatabase
 
     private var score = 0
     private var hits = 0
@@ -29,6 +36,8 @@ class GameFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_game, container, false)
         gameView = view.findViewById(R.id.gameView)
         tvHud = view.findViewById(R.id.tvHud)
+
+        database = AppDatabase.getDatabase(requireContext())
 
         gameView.onBugKilled = { bug ->
             score += bug.points
@@ -45,28 +54,19 @@ class GameFragment : Fragment() {
         return view
     }
 
-    // Вызывается, когда вкладка становится активной
     override fun onResume() {
         super.onResume()
-        if (!isHidden) {
-            startGameIfNeeded()
-        }
+        if (!isHidden) startGameIfNeeded()
     }
 
-    // Вызывается, когда вкладка уходит в фон (свайп на другую)
     override fun onPause() {
         super.onPause()
         stopGame()
     }
 
-    // Вызывается, когда ViewPager2 скрывает/показывает фрагмент
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        if (hidden) {
-            stopGame()
-        } else {
-            startGameIfNeeded()
-        }
+        if (hidden) stopGame() else startGameIfNeeded()
     }
 
     private fun startGameIfNeeded() {
@@ -91,10 +91,17 @@ class GameFragment : Fragment() {
         misses = 0
         updateHud()
 
-        // Запускаем отрисовку
+        val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
+        val roundDurationMs = prefs.getInt("round_duration", 60).toLong() * 1000L
+        val maxBugs = prefs.getInt("max_bugs", 10)
+        val speedProgress = prefs.getInt("speed", 5)
+        val speedMultiplier = speedProgress / 5f
+
+        gameView.maxBugs = maxBugs
+        gameView.speedMultiplier = speedMultiplier
         gameView.resumeAnimation()
 
-        timer = object : CountDownTimer(60_000, 800) {
+        timer = object : CountDownTimer(roundDurationMs, 800) {
             override fun onTick(millisUntilFinished: Long) {
                 gameView.addBug(BugType.entries.random())
                 val sec = (millisUntilFinished / 1000).toInt()
@@ -112,6 +119,17 @@ class GameFragment : Fragment() {
         isGameRunning = false
 
         val accuracy = if (hits + misses == 0) 0 else (hits * 100) / (hits + misses)
+
+        // СОХРАНЕНИЕ В БАЗУ
+        val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
+        val playerName = prefs.getString("player_name", "Игрок") ?: "Игрок"
+        val difficulty = prefs.getInt("difficulty", 5)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            database.scoreDao().insert(
+                Score(playerName = playerName, points = score, difficulty = difficulty)
+            )
+        }
 
         AlertDialog.Builder(requireContext())
             .setTitle("Раунд завершён!")
