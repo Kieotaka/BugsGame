@@ -37,7 +37,7 @@ class GameView @JvmOverloads constructor(
     private var bonusVisible = false
     private var bonusRect = RectF()
     private var lastBonusTime = 0L
-    private val BONUS_INTERVAL = 15_000L // 15 секунд
+    private val BONUS_INTERVAL = 15_000L
     private var tiltModeActive = false
     private var tiltX = 0f
     private var tiltY = 0f
@@ -52,7 +52,6 @@ class GameView @JvmOverloads constructor(
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
     init {
-        // Инициализация SoundPool
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_GAME)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -62,7 +61,6 @@ class GameView @JvmOverloads constructor(
             .setAudioAttributes(audioAttributes)
             .build()
 
-        // ВАЖНО: Раскомментируй код ниже, когда добавишь файл звука в res/raw
         /*
         screamSoundId = soundPool?.load(context, R.raw.bug_scream, 1) ?: 0
         soundPool?.setOnLoadCompleteListener { _, sampleId, status ->
@@ -126,26 +124,27 @@ class GameView @JvmOverloads constructor(
             val bx = 0.2f + Random.nextFloat() * 0.6f
             val by = 0.2f + Random.nextFloat() * 0.6f
             val bSize = 0.15f * Math.min(width, height)
-            bonusRect.set(bx * width - bSize/2, by * height - bSize/2, bx * width + bSize/2, by * height + bSize/2)
+            bonusRect.set(
+                bx * width - bSize / 2,
+                by * height - bSize / 2,
+                bx * width + bSize / 2,
+                by * height + bSize / 2
+            )
         }
 
         bugs.forEach { bug ->
-            // Если активен режим наклона, добавляем ускорение от датчика
             if (tiltModeActive) {
-                // tiltX и tiltY - данные с акселерометра (от -10 до 10)
-                // Умножаем на коэффициент для плавности
-                bug.vx += tiltX * 0.8f * dt
-                bug.vy += tiltY * 0.8f * dt
-                // Ограничиваем скорость
-                bug.vx = bug.vx.coerceIn(-2.5f, 2.5f)
-                bug.vy = bug.vy.coerceIn(-2.5f, 2.5f)
+                // Плавно добавляем скорость от наклона, но ограничиваем максимум
+                bug.vx += tiltX * 0.05f * dt
+                bug.vy += tiltY * 0.05f * dt
+                bug.vx = bug.vx.coerceIn(-0.6f, 0.6f)
+                bug.vy = bug.vy.coerceIn(-0.6f, 0.6f)
             }
 
-            // Двигаем жука в ЛЮБОМ режиме
             bug.x += bug.vx * dt
             bug.y += bug.vy * dt
 
-            // Отскок от краев
+            // Отскок от краев (для master)
             if (bug.x < 0f || bug.x > 1f) { bug.vx = -bug.vx; bug.x = bug.x.coerceIn(0f, 1f) }
             if (bug.y < 0f || bug.y > 1f) { bug.vy = -bug.vy; bug.y = bug.y.coerceIn(0f, 1f) }
 
@@ -159,9 +158,8 @@ class GameView @JvmOverloads constructor(
             bitmap?.let { canvas.drawBitmap(it, null, rect, paint) }
         }
 
-        // Рисуем бонус
         if (bonusVisible) {
-            paint.color = 0xFFFFD700.toInt() // Золотой цвет
+            paint.color = 0xFFFFD700.toInt()
             canvas.drawOval(bonusRect, paint)
         }
 
@@ -173,24 +171,25 @@ class GameView @JvmOverloads constructor(
             val lx = event.x / width
             val ly = event.y / height
 
-            // Проверка клика по бонусу
             if (bonusVisible && bonusRect.contains(event.x, event.y)) {
                 bonusVisible = false
                 lastBonusTime = System.currentTimeMillis()
                 tiltModeActive = true
-                // Проигрываем звук, если загружен
                 if (soundLoaded && screamSoundId != 0) {
                     soundPool?.play(screamSoundId, 1f, 1f, 1, 0, 1f)
                 }
-                // Через 5 секунд выключаем режим наклона
                 postDelayed({
                     tiltModeActive = false
+                    // СБРАСЫВАЕМ СКОРОСТЬ до обычной, чтобы жуки не летали как супергерои
+                    bugs.forEach { bug ->
+                        bug.vx = (if (Random.nextFloat() < 0.5f) -1 else 1) * 0.3f * bug.type.speedFactor * speedMultiplier
+                        bug.vy = (if (Random.nextFloat() < 0.5f) -1 else 1) * 0.3f * bug.type.speedFactor * speedMultiplier
+                    }
                 }, 5000)
                 invalidate()
                 return true
             }
 
-            // Проверка клика по жукам
             val hit = bugs.find { bug ->
                 val dx = lx - bug.x
                 val dy = ly - bug.y
