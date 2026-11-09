@@ -1,5 +1,6 @@
 package com.example.bugsgame.fragments
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -50,6 +51,15 @@ class RegistrationFragment : Fragment() {
             }
 
             val player = collectPlayer(fullName)
+
+            // --- СОХРАНЯЕМ ИМЯ И СЛОЖНОСТЬ ДЛЯ БАЗЫ ДАННЫХ ---
+            val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putString("player_name", player.fullName)
+                .putInt("difficulty", player.difficulty)
+                .apply()
+            // -------------------------------------------------
+
             binding.tvResult.text = """
                 ФИО: ${player.fullName}
                 Пол: ${player.gender}
