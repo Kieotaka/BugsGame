@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/ballContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/bg_gold_ball">
+
+        <TextView
+            android:id="@+id/tvGoldTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Золото ЦБ"
+            android:textColor="#5A3E00"
+            android:textStyle="bold"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvGoldPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="#3A2600"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvGoldUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="руб/г"
+            android:textColor="#6B4A00"
+            android:textSize="10sp" />
+    </LinearLayout>
+</FrameLayout>
