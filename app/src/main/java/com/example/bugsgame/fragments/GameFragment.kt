@@ -3,16 +3,17 @@ package com.example.bugsgame.fragments
 import android.content.Context
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.bugsgame.BugType
 import com.example.bugsgame.GameView
+import com.example.bugsgame.GameViewModel
 import com.example.bugsgame.R
 import com.example.bugsgame.data.AppDatabase
 import com.example.bugsgame.data.Score
@@ -28,11 +29,10 @@ class GameFragment : Fragment() {
     private lateinit var database: AppDatabase
     private val goldRepo = GoldRepository.get()
 
-    private var score = 0
-    private var hits = 0
-    private var misses = 0
+    // Используем activityViewModels() — ViewModel живет вместе с Activity (переживает поворот)
+    private val viewModel: GameViewModel by activityViewModels()
+
     private var timer: CountDownTimer? = null
-    private var isGameRunning = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -44,16 +44,24 @@ class GameFragment : Fragment() {
         database = AppDatabase.getDatabase(requireContext())
 
         gameView.onBugKilled = { bug ->
-            score += bug.points
-            hits++
-            Log.d("GOLD_DEBUG", "Начислено очков: ${bug.points}. Всего: $score")
+            viewModel.score += bug.points
+            viewModel.hits++
             updateHud()
         }
 
         gameView.onMiss = {
-            score -= 1
-            misses++
+            viewModel.score -= 1
+            viewModel.misses++
             updateHud()
+        }
+
+        // Восстанавливаем HUD (если поворот, тут уже будут старые очки)
+        updateHud()
+
+        // Если игра шла до поворота, мы должны просто продолжить анимацию и таймер
+        if (viewModel.isGameRunning) {
+            gameView.resumeAnimation()
+            startTimer(viewModel.timeLeft * 1000L)
         }
 
         return view
@@ -61,71 +69,80 @@ class GameFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (!isHidden) startGameIfNeeded()
+        // Запускаем игру только если она еще не запущена
+        if (!isHidden && !viewModel.isGameRunning) {
+            startGameIfNeeded()
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        stopGame()
+        // НЕ ОСТАНАВЛИВАЕМ игру полностью, просто ставим на паузу анимацию
+        timer?.cancel()
+        gameView.stopAnimation()
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        if (hidden) stopGame() else startGameIfNeeded()
+        if (hidden) {
+            timer?.cancel()
+            gameView.stopAnimation()
+        } else {
+            if (viewModel.isGameRunning) {
+                gameView.resumeAnimation()
+                startTimer(viewModel.timeLeft * 1000L)
+            } else {
+                startGameIfNeeded()
+            }
+        }
     }
 
     private fun startGameIfNeeded() {
-        if (isGameRunning) return
-        isGameRunning = true
-        startRound()
-    }
+        if (viewModel.isGameRunning) return
+        viewModel.isGameRunning = true
 
-    private fun stopGame() {
-        isGameRunning = false
-        timer?.cancel()
-        gameView.clear()
-        gameView.stopAnimation()
-    }
-
-    private fun startRound() {
-        timer?.cancel()
+        // Сбрасываем очки ТОЛЬКО при новом старте
+        viewModel.score = 0
+        viewModel.hits = 0
+        viewModel.misses = 0
+        viewModel.timeLeft = 60
+        updateHud()
 
         gameView.clear()
         gameView.resetGoldTimer()
-        Log.d("GOLD_DEBUG", "startRound: таймер золотого жука запущен")
-
-        score = 0
-        hits = 0
-        misses = 0
-        updateHud()
-
-        val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
-        val roundDurationMs = prefs.getInt("round_duration", 60).toLong() * 1000L
-        val maxBugs = prefs.getInt("max_bugs", 10)
-        val speedProgress = prefs.getInt("speed", 5)
-        val speedMultiplier = speedProgress / 5f
-
-        gameView.maxBugs = maxBugs
-        gameView.speedMultiplier = speedMultiplier
 
         viewLifecycleOwner.lifecycleScope.launch {
-            Log.d("GOLD_DEBUG", "startRound: начинаем загрузку курса ЦБ")
             val price = goldRepo.fetchGoldPrice()
-            Log.d("GOLD_DEBUG", "startRound: полученный курс = $price")
             gameView.goldPrice = price ?: 5000.0
         }
 
         gameView.resumeAnimation()
 
-        timer = object : CountDownTimer(roundDurationMs, 800) {
+        val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
+        val roundDurationMs = prefs.getInt("round_duration", 60).toLong() * 1000L
+
+        startTimer(roundDurationMs)
+    }
+
+    private fun startTimer(durationMs: Long) {
+        timer?.cancel()
+
+        val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
+        val maxBugs = prefs.getInt("max_bugs", 10)
+        val speedProgress = prefs.getInt("speed", 5)
+
+        gameView.maxBugs = maxBugs
+        gameView.speedMultiplier = speedProgress / 5f
+
+        timer = object : CountDownTimer(durationMs, 800) {
             override fun onTick(millisUntilFinished: Long) {
                 gameView.addBug(
                     BugType.entries
                         .filter { it != BugType.GOLD }
                         .random()
                 )
-                val sec = (millisUntilFinished / 1000).toInt()
-                tvHud.text = "Очки: $score | Время: $sec | Попадания: $hits | Промахи: $misses"
+                viewModel.timeLeft = (millisUntilFinished / 1000).toInt()
+                updateHud()
             }
 
             override fun onFinish() {
@@ -135,10 +152,13 @@ class GameFragment : Fragment() {
     }
 
     private fun finishRound() {
-        stopGame()
-        isGameRunning = false
+        viewModel.isGameRunning = false
+        timer?.cancel()
+        gameView.clear()
+        gameView.stopAnimation()
 
-        val accuracy = if (hits + misses == 0) 0 else (hits * 100) / (hits + misses)
+        val accuracy = if (viewModel.hits + viewModel.misses == 0) 0
+        else (viewModel.hits * 100) / (viewModel.hits + viewModel.misses)
 
         val prefs = requireContext().getSharedPreferences("game_settings", Context.MODE_PRIVATE)
         val playerName = prefs.getString("player_name", "Игрок") ?: "Игрок"
@@ -150,16 +170,16 @@ class GameFragment : Fragment() {
                 database.scoreDao().insert(
                     Score(
                         playerName = playerName,
-                        points = score,
+                        points = viewModel.score,
                         difficulty = difficulty,
                         accuracy = accuracy
                     )
                 )
             } else {
-                if (score > existingScore.points) {
+                if (viewModel.score > existingScore.points) {
                     database.scoreDao().updateScore(
                         name = playerName,
-                        newPoints = score,
+                        newPoints = viewModel.score,
                         newDifficulty = difficulty,
                         newAccuracy = accuracy,
                         newTimestamp = System.currentTimeMillis()
@@ -171,24 +191,25 @@ class GameFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle("Раунд завершён!")
             .setMessage("""
-                Очки: $score
-                Попадания: $hits
-                Промахи: $misses
+                Очки: ${viewModel.score}
+                Попадания: ${viewModel.hits}
+                Промахи: ${viewModel.misses}
                 Точность: $accuracy%
             """.trimIndent())
             .setPositiveButton("Играть снова") { _, _ ->
-                startGameIfNeeded()
+                startGameIfNeeded() // тут startGameIfNeeded сбросит всё и запустит заново
             }
             .setCancelable(false)
             .show()
     }
 
     private fun updateHud() {
-        tvHud.text = "Очки: $score | Попадания: $hits | Промахи: $misses"
+        tvHud.text = "Очки: ${viewModel.score} | Время: ${viewModel.timeLeft} | Попадания: ${viewModel.hits} | Промахи: ${viewModel.misses}"
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        stopGame()
+        timer?.cancel()
+        // gameView.clear() не нужен, иначе при повороте удалим всех жуков
     }
 }
